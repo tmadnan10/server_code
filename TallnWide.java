@@ -200,20 +200,37 @@ public class TallnWide implements Serializable {
     public static org.apache.spark.mllib.linalg.Matrix computePrincipalComponents(JavaSparkContext sc, String inputPath,
                                                                                   String outputPath, final int nRows, final int nCols, final double avgCols, final int nPCs,
                                                                                   final int maxIter, final double tolerance, final int maxMemory) throws InterruptedException, IOException {
-        BufferedReader nodeList = new BufferedReader(new FileReader("nodes"));
-        String line = nodeList.readLine();
-        String [] splittednodes = line.split("\\s+");
-        int [] nodes = new int[splittednodes.length];
-        int nodeCount = nodes.length;
-        File [] XtXFiles = new File[nodeCount];
+        BufferedReader masterFile = new BufferedReader(new FileReader("masterFile"));
+        String masterID = masterFile.readLine();
+        
         BufferedReader ID = new BufferedReader(new FileReader("ID"));
         String myID = ID.readLine();
-        int MyIDInt = Integer.parseInt(myID);
-        for (int i = 0; i < splittednodes.length; i++) {
-            nodes[i] = Integer.parseInt(splittednodes[i]);
-            //System.out.println(nodes[i]);
-            XtXFiles[i] = new File("XtX"+splittednodes[i]);
+        System.out.println(masterID+" "+myID);
+        boolean masterBool = false;
+        
+        if(Integer.parseInt(masterID) == Integer.parseInt(myID)) {
+            masterBool = true;
         }
+        
+        BufferedReader nodeList = new BufferedReader(new FileReader("nodes"));
+        int [] nodes = new int[1];
+        File [] XtXFiles;
+        String line = "";
+        if(masterBool){
+            //If I am the master
+            //load node list
+            line = nodeList.readLine();
+            String [] splittednodes = line.split("\\s+");
+            nodes = new int[splittednodes.length];
+            XtXFiles = new File[splittednodes.length];
+            for (int i = 0; i < splittednodes.length; i++) {
+                nodes[i] = Integer.parseInt(splittednodes[i]);
+                System.out.println(nodes[i]);
+                XtXFiles[i] = new File("XtX"+splittednodes[i]);
+            }
+        }
+        
+        
         
         stat.appName = "TallnWide";
         stat.dataSet = dataset;
@@ -338,17 +355,18 @@ public class TallnWide implements Serializable {
         for (int i = 0; i < range.length; i++) {
             range[i] = i * nCols / (nC - 1);
         }
-        String strToWrite = partitionCount+"\\n0\\n0";
-        String commandString = "./append.sh "+strToWrite;
-        System.out.println(commandString);
-        Process p = Runtime.getRuntime().exec(commandString);
-        p.waitFor();
         
-        File S = new File("S");
-        boolean selectedRoot = false;
-        if (S.exists()) {
-            selectedRoot = true;
+        Process p;
+        
+        if(masterBool){
+            String strToWrite = partitionCount+"\\n0\\n0";
+            String commandString = "./append.sh "+strToWrite;
+            System.out.println(commandString);
+            p = Runtime.getRuntime().exec(commandString);
+            p.waitFor();
         }
+        
+    
         
         
         
@@ -356,8 +374,8 @@ public class TallnWide implements Serializable {
         
         long IOTimeStart, IOTimeEnd, totalIOTime = 0;
         
-        if(selectedRoot){
-            System.out.println("Selected Root");
+        if(masterBool){
+            System.out.println("Master Node\nSending Initial W to All Nodes");
             for (int i = 1; i < range.length; i++) {
                 IOTimeStart = System.currentTimeMillis();
                 int start = range[i - 1];
@@ -367,23 +385,7 @@ public class TallnWide implements Serializable {
                 matrix = PCAUtils.randomMatrix(end - start, nPCs);
                 PCAUtils.printMatrixInDenseTextFormat(matrix, outputPath + File.separator + "W" + i);
                 
-
-                
-//                String Wcommand = "./WSender.sh "+i+" "+line;
-//                //String commandString = "./test.sh "+neighbours[i]+" "+myFileName;
-//                System.out.println(Wcommand);
-//                p = Runtime.getRuntime().exec(Wcommand);
-//                BufferedReader Wreader = new BufferedReader(new InputStreamReader(p.getInputStream()));
-//                String WS;
-//                while ((WS = Wreader.readLine()) != null) {
-//                    System.out.println("Script output: " + WS);
-//                }
-//                //    p = Runtime.getRuntime().exec(command);
-//                //    p.waitFor();*/
-//                System.out.println("Called Wsender.sh for index="+i);
-                
                 String Wcommand = "./WSender.sh "+i+" "+line;
-                //String commandString = "./test.sh "+neighbours[i]+" "+myFileName;
                 System.out.println(Wcommand);
                 p = Runtime.getRuntime().exec(Wcommand);
                 //BufferedReader XtXreader = new BufferedReader(new InputStreamReader(p.getInputStream()));
@@ -391,48 +393,24 @@ public class TallnWide implements Serializable {
                 //while ((XtXS = XtXreader.readLine()) != null) {
                 //    System.out.println("Script output: " + XtXS);
                 //}
-                //    p = Runtime.getRuntime().exec(command);
-                //    p.waitFor();*/
-                System.out.println("Called Wsender.sh for index="+i);
 
-		IOTimeEnd = System.currentTimeMillis();
+                System.out.println("Called Wsender.sh for index="+i);
+                
+                IOTimeEnd = System.currentTimeMillis();
                 totalIOTime += IOTimeEnd - IOTimeStart;
             }
-	    File ff = new File("doneInit");
-	    ff.createNewFile();
+            String Wcommand = "./doneInitSender.sh "+line;
+            System.out.println(Wcommand);
+            p = Runtime.getRuntime().exec(Wcommand);
         }
         else{
             System.out.println("Not Selected Root");
         }
-
+        
         
         System.out.println("Generation of Initial W's is complete \nStarting E-M Iterations");
         
-        
-        
         File convergenceCheckFile = new File("converged");
-        
-        
-        /*///////////////////global variable///////////////////////////
-         
-         final Accumulator<double[][]> matrixAccumXtx = sc.accumulator(new double[nPCs][nPCs],
-         new MatrixAccumulatorParam());
-         final Accumulator<double[]> matrixAccumX = sc.accumulator(new double[nPCs], new VectorAccumulatorParam());
-         
-         final double[][] resArrayXtX = new double[nPCs][nPCs];
-         
-         final double[][] internalSumXtX = new double[nPCs][nPCs];
-         final double[] internalSumX = new double[nPCs];
-         
-         final Accumulator<double[][]> matrixAccumYtx = sc.accumulator(new double[range[1] - range[0]][nPCs],
-         new MatrixAccumulatorParam());
-         
-         final double[][] resArrayYtX = new double[range[1] - range[0]][nPCs];
-         
-         final double[][] internalSumYtX = new double[range[1] - range[0]][nPCs];
-         
-         ////////////////////global variable//////////////////////////*/
-        
         
         File doneInit = new File("doneInit");
         while(!doneInit.exists()){
@@ -463,7 +441,7 @@ public class TallnWide implements Serializable {
                 //*****************************************************************************************************************************************
                 
                 //check for convergence
-                if ( convergenceCheckFile.exists()) {
+                if ( masterBool && convergenceCheckFile.exists()) {
                     endTime = System.currentTimeMillis();
                     totalTime = endTime - startTime;
                     stat.ppcaIterTime.add((double) totalTime / 1000.0);
@@ -516,20 +494,15 @@ public class TallnWide implements Serializable {
                     //Thread.sleep(100);
                 }
                 
+                File[] neigbourFiles = new File[nodes.length];
                 
-                BufferedReader br = new BufferedReader(new FileReader("myInfo"));
-                String thisLine;
-                thisLine = br.readLine();
-                thisLine = br.readLine();
-                String[] splittedn = thisLine.split("\\s+");
-                File[] neigbourFiles = null;
-                if (splittedn.length > 1) {
-                    neigbourFiles = new File[splittedn.length-1];
-                    for (int k = 0; k < splittedn.length-1; k++) {
-                        neigbourFiles[k] = new File("dummy"+splittedn[k]+"W"+i);
-                        neigbourFiles[k].createNewFile();
+                if(masterBool){
+                    for(int k = 0; k < nodes.length; k++){
+                         neigbourFiles[k] = new File("dummy"+nodes[k]+"W"+i);
+                         neigbourFiles[k].createNewFile();
                     }
                 }
+                
                 //*****************************************************************************************************************************************/
                 
                 
@@ -821,19 +794,35 @@ public class TallnWide implements Serializable {
                     
                     
                     //******************************************************************************************************************************************
-                    String XtXcommand = "./XtXSender.sh "+myID+" "+line;
-                    //String commandString = "./test.sh "+neighbours[i]+" "+myFileName;
-                    System.out.println(XtXcommand);
-                    p = Runtime.getRuntime().exec(XtXcommand);
-                    //BufferedReader XtXreader = new BufferedReader(new InputStreamReader(p.getInputStream()));
-                    //String XtXS;
-                    //while ((XtXS = XtXreader.readLine()) != null) {
-                    //    System.out.println("Script output: " + XtXS);
-                    //}
-                    //    p = Runtime.getRuntime().exec(command);
-                    //    p.waitFor();*/
-                    System.out.println("Called sendXtX.sh");
-                    //*****************************************************************************************************************************************/
+                    if(!masterBool){
+                        String XtXcommand = "./sendXtX.sh "+myID+" "+masterID;
+                        //String commandString = "./test.sh "+neighbours[i]+" "+myFileName;
+                        System.out.println(XtXcommand);
+                        p = Runtime.getRuntime().exec(XtXcommand);
+                        //BufferedReader XtXreader = new BufferedReader(new InputStreamReader(p.getInputStream()));
+                        //String XtXS;
+                        //while ((XtXS = XtXreader.readLine()) != null) {
+                        //    System.out.println("Script output: " + XtXS);
+                        //}
+                        //    p = Runtime.getRuntime().exec(command);
+                        //    p.waitFor();*/
+                        System.out.println("Called sendXtX.sh");
+                    }
+                    else{
+                        String XtXcommand = "./accumulateXtX.sh"+ " "+outputPath+ " "+nPCs;
+                        //String commandString = "./test.sh "+neighbours[i]+" "+myFileName;
+                        System.out.println(XtXcommand);
+                        p = Runtime.getRuntime().exec(XtXcommand);
+                        BufferedReader XtXreader = new BufferedReader(new InputStreamReader(p.getInputStream()));
+                        String XtXS;
+                        while ((XtXS = XtXreader.readLine()) != null) {
+                            System.out.println("Script output: " + XtXS);
+                        }
+                        //    p = Runtime.getRuntime().exec(command);
+                        //    p.waitFor();*/
+                        System.out.println("Called sendXtX.sh");
+                    }
+                    /*****************************************************************************************************************************************/
                     
                     // C = (Ye'*X) / SumXtX;
                     //invXtX_central = PCAUtils.inv(centralXtX);
@@ -938,26 +927,16 @@ public class TallnWide implements Serializable {
                  * XtX=(M-1)'*X'*X*M-1
                  */
                 
-            //    System.out.println(MyIDInt);
-                nodeCount = nodes.length;
-          //      System.out.println(nodeCount);
-                while(nodeCount > 1){
-                    for(int k = 0; k < nodes.length; k++){
-                        if(doneCheck[k] == 0 && nodes[k] != MyIDInt){
-                            if (XtXFiles[k].exists()){
-                                //System.out.println(XtXFiles[k].getName()+" exists");
-                                Matrix currentXtXMatrix = new DenseMatrix(nPCs,nPCs);
-                                PCAUtils.loadMatrixInDenseTextFormat(currentXtXMatrix, outputPath + File.separator + "XtX" +  nodes[k]);
-                                centralXtX = centralXtX.plus(currentXtXMatrix);
-                                nodeCount--;
-                                doneCheck[k] = 1;
-                                //System.out.println("Done for "+XtXFiles[k].getName());
-                                XtXFiles[k].delete();
-                            }
-                        }
-                    }
+                //    System.out.println(MyIDInt);
+                
+                File XtXFile = new File("XtXReady");
+                while(!XtXFile.exists()){
+                    
                 }
-                //System.out.println(M.getQuick(0,0)+" "+M.getQuick(5,5));
+                centralXtX = new DenseMatrix(nPCs,nPCs);
+                PCAUtils.loadMatrixInDenseTextFormat(centralXtX, outputPath + File.separator + "XtX");
+
+                System.out.println(M.getQuick(0,0)+" "+M.getQuick(5,5));
                 System.out.println(centralXtX.getQuick(0,0)+" "+centralXtX.getQuick(5,5));
                 invXtX_central = PCAUtils.inv(centralXtX);
                 final Matrix centralC = centralYtX.times(invXtX_central);
@@ -987,27 +966,45 @@ public class TallnWide implements Serializable {
                  }
                  */
                 IOTimeStart = System.currentTimeMillis();
-                PCAUtils.printMatrixInDenseTextFormat(centralC, outputPath + File.separator + "nW" + i);
+                if(!masterBool) PCAUtils.printMatrixInDenseTextFormat(centralC, outputPath + File.separator + "nW" + i);
+		else PCAUtils.printMatrixInDenseTextFormat(centralC, outputPath + File.separator +myID+"nW" + i);
                 IOTimeEnd = System.currentTimeMillis();
                 totalIOTime += IOTimeEnd - IOTimeStart;
                 System.out.println("New W" + i + " has beens saved");
                 
                 //******************************************************************************************************************************************
-                String command = "./accumulate.sh "+i+ " "+nCols+" "+nPCs+" "+round;
-                //String commandString = "./test.sh "+neighbours[i]+" "+myFileName;
-                System.out.println(command);
-                p = Runtime.getRuntime().exec(command);
-                BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
-                String sss;
-//                while ((sss = reader.readLine()) != null) {
-  //                  System.out.println("Script output: " + sss);
-    //            }
-                //    p = Runtime.getRuntime().exec(command);
-                //    p.waitFor();*/
-                System.out.println("Called Accumulation for W"+i);
+                if(!masterBool){
+                    String command = "./rsync_copy_W.sh "+myID+ " "+masterID+" "+i;
+                    //String commandString = "./test.sh "+neighbours[i]+" "+myFileName;
+                    System.out.println(command);
+                    p = Runtime.getRuntime().exec(command);
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
+                    String sss;
+                    while ((sss = reader.readLine()) != null) {
+                        System.out.println("Script output: " + sss);
+                    }
+                    //    p = Runtime.getRuntime().exec(command);
+                    //    p.waitFor();*/
+                    System.out.println("Called Accumulation for W"+i);
+                }
+                else{
+                    String command = "./centralizedAccumulation.sh "+i+ " "+nCols+" "+nPCs+" "+round;
+                    //String commandString = "./test.sh "+neighbours[i]+" "+myFileName;
+                    System.out.println(command);
+                    p = Runtime.getRuntime().exec(command);
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
+                    String sss;
+                    while ((sss = reader.readLine()) != null) {
+                        System.out.println("Script output: " + sss);
+                    }
+                    //    p = Runtime.getRuntime().exec(command);
+                    //    p.waitFor();*/
+                    System.out.println("Called Accumulation for W"+i);
+                }
+
                 //*****************************************************************************************************************************************/
                 
-                
+		XtXFile.delete();                
                 heapSize1 = Runtime.getRuntime().totalMemory() / 1024 / 1024;
                 heapMaxSize1 = Runtime.getRuntime().maxMemory() / 1024 / 1024;
                 heapFreeSize1 = Runtime.getRuntime().freeMemory() / 1024 / 1024;
@@ -1065,6 +1062,7 @@ public class TallnWide implements Serializable {
                  "Usage: -Di=<path/to/input/matrix> -Do=<path/to/outputfolder> -Drows=<number of rows> -Dcols=<number of columns> -Dpcs=<number of principal components> [-DerrSampleRate=<Error sampling rate>] [-DmaxIter=<max iterations>] [-DoutFmt=<output format>] [-DComputeProjectedMatrix=<0/1 (compute projected matrix or not)>]");
     }
 }
+
 
 
 
