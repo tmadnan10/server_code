@@ -169,11 +169,11 @@ public class Accumulate {
                         File f = neigbourFiles[i];
                         if(f.exists() && !f.isDirectory()) {
                             //file exists so look for next file
-                            System.out.println(f.getName()+" Exists");
-                            Thread.sleep(100);
+                            //System.out.println(f.getName()+" Exists");
+                            //Thread.sleep(10);
                         }
                         else {
-                            System.out.println(f.getName()+" Not Exist");
+                            //System.out.println(f.getName()+" Not Exist");
                             //file doesnt exist so W from this child has been reached
                             Matrix m1 = new DenseMatrix(row, col);
                             PCAUtils.loadMatrixInDenseTextFormat(m1, neighbours[i]+"nW"+WIndex);
@@ -199,8 +199,8 @@ public class Accumulate {
                 //check if other root has already notified or not
                 File rootCheckFile = new File("rootDone"+WIndex);
                 while (!rootCheckFile.exists()) {
-                    System.out.println("Other Root Not Done");
-                    Thread.sleep(100);
+                    //System.out.println("Other Root Not Done");
+                    //Thread.sleep(100);
                 }
                 rootCheckFile.delete();
 
@@ -270,8 +270,8 @@ public class Accumulate {
             System.out.println("Starting Redistribution");
             File currentCheckFile = new File(round+"doneW"+WIndex);
             while (!currentCheckFile.exists()) {
-                System.out.println(round+"done"+ WIndex +" File Not Generated");
-                Thread.sleep(100);
+  //              System.out.println(round+"done"+ WIndex +" File Not Generated");
+                //Thread.sleep(100);
             }
             
 	    String accCommand = "./accumulatedWSender.sh "+WIndex+" "+round;
@@ -279,7 +279,7 @@ public class Accumulate {
 		accCommand += " "+neighbours[i];
                 //sendAccumulatedWtoNeighbours(neighbours[i],WIndex);
             }
-	    System.out.println(accCommand);
+//	    System.out.println(accCommand);
 	    runCommand(accCommand);
             System.out.println("W"+WIndex+" Sent to all neighbour");
 

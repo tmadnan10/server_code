@@ -436,7 +436,7 @@ public class TallnWide implements Serializable {
         
         File doneInit = new File("doneInit");
         while(!doneInit.exists()){
-            Thread.sleep(10);
+            //Thread.sleep(10);
         }
         System.out.println("Initial W's are ready");
         
@@ -491,7 +491,7 @@ public class TallnWide implements Serializable {
                 //*****************************************************************************************************************************************
                 File currentCheckFile = new File((round-1)+"doneW"+i);
                 while(round != 0 && !currentCheckFile.exists()){
-                    System.out.println((round-1)+"doneW"+i+" Not Exists");
+                    //System.out.println((round-1)+"doneW"+i+" Not Exists");
                     if ( convergenceCheckFile.exists()) {
                         endTime = System.currentTimeMillis();
                         totalTime = endTime - startTime;
@@ -513,7 +513,7 @@ public class TallnWide implements Serializable {
                         return null;
                         //break;
                     }
-                    Thread.sleep(100);
+                    //Thread.sleep(100);
                 }
                 
                 
@@ -825,8 +825,8 @@ public class TallnWide implements Serializable {
                     //String commandString = "./test.sh "+neighbours[i]+" "+myFileName;
                     System.out.println(XtXcommand);
                     p = Runtime.getRuntime().exec(XtXcommand);
-                    BufferedReader XtXreader = new BufferedReader(new InputStreamReader(p.getInputStream()));
-                    String XtXS;
+                    //BufferedReader XtXreader = new BufferedReader(new InputStreamReader(p.getInputStream()));
+                    //String XtXS;
                     //while ((XtXS = XtXreader.readLine()) != null) {
                     //    System.out.println("Script output: " + XtXS);
                     //}
@@ -938,9 +938,9 @@ public class TallnWide implements Serializable {
                  * XtX=(M-1)'*X'*X*M-1
                  */
                 
-                System.out.println(MyIDInt);
+            //    System.out.println(MyIDInt);
                 nodeCount = nodes.length;
-                System.out.println(nodeCount);
+          //      System.out.println(nodeCount);
                 while(nodeCount > 1){
                     for(int k = 0; k < nodes.length; k++){
                         if(doneCheck[k] == 0 && nodes[k] != MyIDInt){
@@ -999,9 +999,9 @@ public class TallnWide implements Serializable {
                 p = Runtime.getRuntime().exec(command);
                 BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
                 String sss;
-                while ((sss = reader.readLine()) != null) {
-                    System.out.println("Script output: " + sss);
-                }
+//                while ((sss = reader.readLine()) != null) {
+  //                  System.out.println("Script output: " + sss);
+    //            }
                 //    p = Runtime.getRuntime().exec(command);
                 //    p.waitFor();*/
                 System.out.println("Called Accumulation for W"+i);
