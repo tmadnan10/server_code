@@ -348,7 +348,8 @@ public class TallnWide implements Serializable {
         final int partitionCount = (int) Math.ceil(sizeOfW / min);
         
         System.out.println("No of Partition of W: " + partitionCount);
-        int nC = partitionCount + 1;//+4;
+        //partitionCount + 1;
+	int nC = partitionCount + 2;//+4;
         stat.nPartitions = nC - 1;
         
         int range[] = new int[nC];
@@ -359,7 +360,7 @@ public class TallnWide implements Serializable {
         Process p;
         
         if(masterBool){
-            String strToWrite = partitionCount+"\\n0\\n0";
+            String strToWrite = (nC-1)+"\\n0\\n0";
             String commandString = "./append.sh "+strToWrite;
             System.out.println(commandString);
             p = Runtime.getRuntime().exec(commandString);
@@ -413,9 +414,9 @@ public class TallnWide implements Serializable {
         File convergenceCheckFile = new File("converged");
         
         File doneInit = new File("doneInit");
-        while(!doneInit.exists()){
+//        while(!doneInit.exists()){
             //Thread.sleep(10);
-        }
+//        }
         System.out.println("Initial W's are ready");
         
         for (int round = 0; round < maxIter; round++) {
@@ -467,7 +468,7 @@ public class TallnWide implements Serializable {
                 
                 
                 //*****************************************************************************************************************************************
-                File currentCheckFile = new File((round-1)+"doneW"+i);
+                File currentCheckFile = ("W"+i);
                 while(round != 0 && !currentCheckFile.exists()){
                     //System.out.println((round-1)+"doneW"+i+" Not Exists");
                     if ( convergenceCheckFile.exists()) {
@@ -526,7 +527,7 @@ public class TallnWide implements Serializable {
                 xm_mahout = new DenseVector(nPCs);
                 xm_mahout = PCAUtils.denseVectorTimesMatrix(meanVector, matrix, start, end, xm_mahout);
                 
-                // Broadcast Xm because it will be used in several iterations.
+                // Broadcast Xm becaus`e it will be used in several iterations.
                 final Broadcast<Vector> br_xm_mahout = sc.broadcast(xm_mahout);
                 
                 if (i == 1) {
@@ -1003,10 +1004,11 @@ public class TallnWide implements Serializable {
                 }
 
                 //*****************************************************************************************************************************************/
-                
-		XtXFile.delete();                
-                heapSize1 = Runtime.getRuntime().totalMemory() / 1024 / 1024;
-                heapMaxSize1 = Runtime.getRuntime().maxMemory() / 1024 / 1024;
+                if(i == (nC-1)) XtXFile.delete();
+	            
+    		heapSize1 = Runtime.getRuntime().totalMemory() / 1024 / 1024;
+            
+		heapMaxSize1 = Runtime.getRuntime().maxMemory() / 1024 / 1024;
                 heapFreeSize1 = Runtime.getRuntime().freeMemory() / 1024 / 1024;
                 System.out.println("HeapFreeSize: " + heapFreeSize1+"\nHeapAllocatedSize: " + (heapSize1-heapFreeSize1));
                 System.gc ();
