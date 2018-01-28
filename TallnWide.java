@@ -8,7 +8,6 @@
  *
  */
 package org.qcri.sparkpca;
-
 import java.io.InputStreamReader;
 import java.io.File;
 import java.io.PrintStream;
@@ -24,7 +23,7 @@ import java.io.BufferedWriter;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-
+import java.util.Scanner; 
 import org.apache.hadoop.io.IntWritable;
 import org.apache.log4j.Level;
 import org.apache.mahout.math.DenseMatrix;
@@ -172,7 +171,7 @@ public class TallnWide implements Serializable {
             printLogMessage("pcs");
             return;
         }
-        
+
         // Setting Spark configuration parameters
         SparkConf conf = new SparkConf().setAppName("TallnWide").setMaster("local[*]");// TODO
         // remove
@@ -349,7 +348,7 @@ public class TallnWide implements Serializable {
         
         System.out.println("No of Partition of W: " + partitionCount);
         //partitionCount + 1;
-	int nC = partitionCount + 2;//+4;
+	int nC = partitionCount + 1+maxMemory;//+4;
         stat.nPartitions = nC - 1;
         
         int range[] = new int[nC];
@@ -468,52 +467,76 @@ public class TallnWide implements Serializable {
                 
                 
                 //*****************************************************************************************************************************************
-                File currentCheckFile = ("W"+i);
-                while(round != 0 && !currentCheckFile.exists()){
-                    //System.out.println((round-1)+"doneW"+i+" Not Exists");
-                    if ( convergenceCheckFile.exists()) {
-                        endTime = System.currentTimeMillis();
-                        totalTime = endTime - startTime;
-                        stat.ppcaIterTime.add((double) totalTime / 1000.0);
-                        stat.totalRunTime += (double) totalTime / 1000.0;
-                        BufferedReader conv = new BufferedReader(new FileReader(convergenceCheckFile));
-                        int convRound = Integer.parseInt(conv.readLine());
-                        stat.nIter = convRound+1;
-                        for (int j = 0; j < stat.ppcaIterTime.size(); j++) {
-                            stat.avgppcaIterTime += stat.ppcaIterTime.get(j);
-                        }
-                        stat.avgppcaIterTime /= stat.ppcaIterTime.size();
-                        stat.IOTime = (double) totalIOTime / 1000.0;
-                        
-                        // save statistics
-                        PCAUtils.printStatToFile(stat, outputPath);
-                        int a = convRound+1;
-                        System.out.println("Done in "+a+" iterations");
-                        return null;
-                        //break;
-                    }
-                    //Thread.sleep(100);
-                }
-                
-                File[] neigbourFiles = new File[nodes.length];
-                
+                File currentCheckFile = new File("W"+i);
+                File masterCheckFile = new File((round-1)+"doneW"+i);
                 if(masterBool){
-                    for(int k = 0; k < nodes.length; k++){
-                         neigbourFiles[k] = new File("dummy"+nodes[k]+"W"+i);
-                         neigbourFiles[k].createNewFile();
+                    while(round != 0 && !masterCheckFile.exists()){
+                        //System.out.println((round-1)+"doneW"+i+" Not Exists");
+                        if ( convergenceCheckFile.exists()) {
+                            endTime = System.currentTimeMillis();
+                            totalTime = endTime - startTime;
+                            stat.ppcaIterTime.add((double) totalTime / 1000.0);
+                            stat.totalRunTime += (double) totalTime / 1000.0;
+                            BufferedReader conv = new BufferedReader(new FileReader(convergenceCheckFile));
+                            int convRound = Integer.parseInt(conv.readLine());
+                            stat.nIter = convRound+1;
+                            for (int j = 0; j < stat.ppcaIterTime.size(); j++) {
+                                stat.avgppcaIterTime += stat.ppcaIterTime.get(j);
+                            }
+                            stat.avgppcaIterTime /= stat.ppcaIterTime.size();
+                            stat.IOTime = (double) totalIOTime / 1000.0;
+                            
+                            // save statistics
+                            PCAUtils.printStatToFile(stat, outputPath);
+                            int a = convRound+1;
+                            System.out.println("Done in "+a+" iterations");
+                            return null;
+                            //break;
+                        }
+                        //Thread.sleep(100);
                     }
                 }
-                
-                //*****************************************************************************************************************************************/
+                    
+                else{
+                    while(!currentCheckFile.exists()){
+                        //System.out.println(currentCheckFile.getName()+" Not Exists");
+                        if ( convergenceCheckFile.exists()) {
+                            endTime = System.currentTimeMillis();
+                            totalTime = endTime - startTime;
+                            stat.ppcaIterTime.add((double) totalTime / 1000.0);
+                            stat.totalRunTime += (double) totalTime / 1000.0;
+                            BufferedReader conv = new BufferedReader(new FileReader(convergenceCheckFile));
+                            int convRound = Integer.parseInt(conv.readLine());
+                            stat.nIter = convRound+1;
+                            for (int j = 0; j < stat.ppcaIterTime.size(); j++) {
+                                stat.avgppcaIterTime += stat.ppcaIterTime.get(j);
+                            }
+                            stat.avgppcaIterTime /= stat.ppcaIterTime.size();
+                            stat.IOTime = (double) totalIOTime / 1000.0;
+                            
+                            // save statistics
+                            PCAUtils.printStatToFile(stat, outputPath);
+                            int a = convRound+1;
+                            System.out.println("Done in "+a+" iterations");
+                            return null;
+                            //break;
+                        }
+                        //Thread.sleep(100);
+                    }
+                }
+		 //*****************************************************************************************************************************************/
                 
                 
                 final int start = range[i - 1];
                 final int end = range[i];
-                
+                Scanner scan = new Scanner(System.in);
+//     		int in = scan.nextInt();
                 final Matrix matrix = new DenseMatrix(end - start, nPCs);
                 IOTimeStart = System.currentTimeMillis();
                 PCAUtils.loadMatrixInDenseTextFormat(matrix, outputPath + File.separator + "W" + i);
-                IOTimeEnd = System.currentTimeMillis();
+                if(!masterBool) currentCheckFile.delete();
+
+		IOTimeEnd = System.currentTimeMillis();
                 totalIOTime += IOTimeEnd - IOTimeStart;
                 
                 System.out.println("W" + i + " is Loaded From " + start + " to " + end);
@@ -791,12 +814,12 @@ public class TallnWide implements Serializable {
                     centralXtX = (invM.transpose().times(centralXtX)).times(invM);
                     
                     
-                    PCAUtils.printMatrixInDenseTextFormat(centralXtX, outputPath + File.separator + "XtX" + myID);
+                    PCAUtils.printMatrixInDenseTextFormat(centralXtX, outputPath + File.separator + round+"XtX" + myID);
                     
                     
                     //******************************************************************************************************************************************
                     if(!masterBool){
-                        String XtXcommand = "./sendXtX.sh "+myID+" "+masterID;
+                        String XtXcommand = "./sendXtX.sh "+round+" "+myID+" "+masterID;
                         //String commandString = "./test.sh "+neighbours[i]+" "+myFileName;
                         System.out.println(XtXcommand);
                         p = Runtime.getRuntime().exec(XtXcommand);
@@ -810,7 +833,7 @@ public class TallnWide implements Serializable {
                         System.out.println("Called sendXtX.sh");
                     }
                     else{
-                        String XtXcommand = "./accumulateXtX.sh"+ " "+outputPath+ " "+nPCs;
+                        String XtXcommand = "./accumulateXtX.sh"+ " "+outputPath+ " "+nPCs+" "+round;
                         //String commandString = "./test.sh "+neighbours[i]+" "+myFileName;
                         System.out.println(XtXcommand);
                         p = Runtime.getRuntime().exec(XtXcommand);
@@ -989,7 +1012,7 @@ public class TallnWide implements Serializable {
                     System.out.println("Called Accumulation for W"+i);
                 }
                 else{
-                    String command = "./centralizedAccumulation.sh "+i+ " "+nCols+" "+nPCs+" "+round;
+                    String command = "./centralizedAccumulation.sh "+i+ " "+(end-start)+" "+nPCs+" "+round;
                     //String commandString = "./test.sh "+neighbours[i]+" "+myFileName;
                     System.out.println(command);
                     p = Runtime.getRuntime().exec(command);

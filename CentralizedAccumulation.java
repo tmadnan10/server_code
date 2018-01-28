@@ -124,7 +124,7 @@ public class CentralizedAccumulation{
             }
         }
         String strToWrite = "";
-        strToWrite = myID+"\\n"+partitionCount+"\\n"+maxWnew+"\\n"+dw;
+        strToWrite = myID+"\\n"+partitionCount+"\\n"+dw+"\\n"+maxWnew;
         String commandString = "./write.sh "+strToWrite;
         runCommand(commandString);
         

@@ -16,6 +16,8 @@ public class AccumulateXtX {
         String outputPath = System.getProperty("Path");
         String PCs = System.getProperty("nPCs");
         int nPCs = Integer.parseInt(PCs);
+	String round = System.getProperty("round");
+        //String PCs = System.getProperty("round");
         BufferedReader ID = new BufferedReader(new FileReader("ID"));
         myID = ID.readLine();
         
@@ -29,7 +31,7 @@ public class AccumulateXtX {
         for (int i = 0; i < splittednodes.length; i++) {
             nodes[i] = Integer.parseInt(splittednodes[i]);
             System.out.println(nodes[i]);
-            XtXFiles[i] = new File("XtX"+splittednodes[i]);
+            XtXFiles[i] = new File(round+"XtX"+splittednodes[i]);
         }
         //    System.out.println(MyIDInt);
         int nodeCount = nodes.length;
@@ -42,12 +44,13 @@ public class AccumulateXtX {
                     if (XtXFiles[k].exists()){
                         System.out.println(XtXFiles[k].getName()+" exists");
                         Matrix currentXtXMatrix = new DenseMatrix(nPCs,nPCs);
-                        PCAUtils.loadMatrixInDenseTextFormat(currentXtXMatrix, outputPath + File.separator + "XtX" +  nodes[k]);
+                        PCAUtils.loadMatrixInDenseTextFormat(currentXtXMatrix, outputPath + File.separator + XtXFiles[k].getName());
                         centralXtX = centralXtX.plus(currentXtXMatrix);
-                        nodeCount--;
+                        System.out.println(centralXtX.getQuick(0,0)+" "+centralXtX.getQuick(5,5));
+			nodeCount--;
                         doneCheck[k] = true;
                         System.out.println("Done for "+XtXFiles[k].getName());
-                        XtXFiles[k].delete();
+//                        XtXFiles[k].delete();
                     }
                 }
             }
