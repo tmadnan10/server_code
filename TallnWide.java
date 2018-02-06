@@ -1070,8 +1070,8 @@ public class TallnWide implements Serializable {
             endTime = System.currentTimeMillis();
             totalTime = endTime - startTime;
             stat.ppcaIterTime.add((double) totalTime / 1000.0);
-            stat.totalRunTime += (double) totalTime / 1000.0;
-            
+            stat.totalRunTime += (double) totalTime / 1000.0;	
+	    System.out.println(((double) (totalTime / 1000.0)));            
             startTime = System.currentTimeMillis();
             
             
