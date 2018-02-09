@@ -173,7 +173,7 @@ public class TallnWide implements Serializable {
         }
 
         // Setting Spark configuration parameters
-        SparkConf conf = new SparkConf().setAppName("TallnWide").setMaster("local[*]");// TODO
+        SparkConf conf = new SparkConf().setAppName("TallnWide");//.setMaster("local[*]");// TODO
         // remove
         // this
         // part
@@ -342,13 +342,13 @@ public class TallnWide implements Serializable {
         }
         
         System.out.println("Minimum Memory"+min);
-        final double sizeOfW = (30.0 * nCols * nPCs * 8) / 1024 / 1024;//4 na koto pore chinta kori
+        final double sizeOfW = (40.0 * nCols * nPCs * 8) / 1024 / 1024;//4 na koto pore chinta kori
         System.out.println("Size of W"+sizeOfW);
         final int partitionCount = (int) Math.ceil(sizeOfW / min);
         
         System.out.println("No of Partition of W: " + partitionCount);
         //partitionCount + 1;
-	int nC = partitionCount + 1+maxMemory;//+4;
+	int nC = partitionCount + 1 + maxMemory;//+4;
         stat.nPartitions = nC - 1;
         
         int range[] = new int[nC];
@@ -413,11 +413,11 @@ public class TallnWide implements Serializable {
         File convergenceCheckFile = new File("converged");
         
         File doneInit = new File("doneInit");
-//        while(!doneInit.exists()){
+        while(!doneInit.exists()){
             //Thread.sleep(10);
-//        }
+        }
         System.out.println("Initial W's are ready");
-        
+	startTime = System.currentTimeMillis();        
         for (int round = 0; round < maxIter; round++) {
             //System.out.println("count: "+vectors.count());
             System.out.println("\n\nStarting Round " + round);
@@ -426,7 +426,6 @@ public class TallnWide implements Serializable {
             long heapMaxSize1 = Runtime.getRuntime().maxMemory() / 1024 / 1024;
             long heapFreeSize1 = Runtime.getRuntime().freeMemory() / 1024 / 1024;
             //    System.out.println("HeapFreeSize: " + heapFreeSize1+"\nHeapAllocatedSize: " + (heapSize1-heapFreeSize1));
-            startTime = System.currentTimeMillis();
             // M=W1'*W1;
             Matrix M = new DenseMatrix(nPCs, nPCs);
             
@@ -435,11 +434,10 @@ public class TallnWide implements Serializable {
             JavaPairRDD<Tuple2<Integer, org.apache.spark.mllib.linalg.Vector>, Tuple2<Integer, org.apache.spark.mllib.linalg.Vector>> YnA = null;
             
             Vector xm_mahout = null;
-            
+            boolean timeCheck = false;
             for (int i = 1; i < range.length; i++) {
                 
                 //*****************************************************************************************************************************************
-                
                 //check for convergence
                 if ( masterBool && convergenceCheckFile.exists()) {
                     endTime = System.currentTimeMillis();
@@ -525,7 +523,14 @@ public class TallnWide implements Serializable {
                     }
                 }
 		 //*****************************************************************************************************************************************/
-                
+                if(timeCheck == false){
+			endTime = System.currentTimeMillis();
+            		totalTime = endTime - startTime;
+            		System.out.println("Round: "+round);
+            		System.out.println((double) totalTime / 1000.0);
+			timeCheck = true;
+           		startTime = System.currentTimeMillis();
+		}
                 
                 final int start = range[i - 1];
                 final int end = range[i];
@@ -837,11 +842,11 @@ public class TallnWide implements Serializable {
                         //String commandString = "./test.sh "+neighbours[i]+" "+myFileName;
                         System.out.println(XtXcommand);
                         p = Runtime.getRuntime().exec(XtXcommand);
-                        BufferedReader XtXreader = new BufferedReader(new InputStreamReader(p.getInputStream()));
-                        String XtXS;
-                        while ((XtXS = XtXreader.readLine()) != null) {
-                            System.out.println("Script output: " + XtXS);
-                        }
+                        //BufferedReader XtXreader = new BufferedReader(new InputStreamReader(p.getInputStream()));
+                        //String XtXS;
+                        //while ((XtXS = XtXreader.readLine()) != null) {
+                        //    System.out.println("Script output: " + XtXS);
+                       // }
                         //    p = Runtime.getRuntime().exec(command);
                         //    p.waitFor();*/
                         System.out.println("Called sendXtX.sh");
@@ -1002,11 +1007,11 @@ public class TallnWide implements Serializable {
                     //String commandString = "./test.sh "+neighbours[i]+" "+myFileName;
                     System.out.println(command);
                     p = Runtime.getRuntime().exec(command);
-                    BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
-                    String sss;
-                    while ((sss = reader.readLine()) != null) {
-                        System.out.println("Script output: " + sss);
-                    }
+                    //BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
+                    //String sss;
+                    //while ((sss = reader.readLine()) != null) {
+                    //    System.out.println("Script output: " + sss);
+                    //}
                     //    p = Runtime.getRuntime().exec(command);
                     //    p.waitFor();*/
                     System.out.println("Called Accumulation for W"+i);
@@ -1016,11 +1021,11 @@ public class TallnWide implements Serializable {
                     //String commandString = "./test.sh "+neighbours[i]+" "+myFileName;
                     System.out.println(command);
                     p = Runtime.getRuntime().exec(command);
-                    BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
-                    String sss;
-                    while ((sss = reader.readLine()) != null) {
-                        System.out.println("Script output: " + sss);
-                    }
+                    //BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
+                    //String sss;
+                    //while ((sss = reader.readLine()) != null) {
+                    //    System.out.println("Script output: " + sss);
+                    //}
                     //    p = Runtime.getRuntime().exec(command);
                     //    p.waitFor();*/
                     System.out.println("Called Accumulation for W"+i);
@@ -1067,12 +1072,12 @@ public class TallnWide implements Serializable {
              //break;
              }
              */
-            endTime = System.currentTimeMillis();
-            totalTime = endTime - startTime;
-            stat.ppcaIterTime.add((double) totalTime / 1000.0);
-            stat.totalRunTime += (double) totalTime / 1000.0;	
-	    System.out.println(((double) (totalTime / 1000.0)));            
-            startTime = System.currentTimeMillis();
+            //endTime = System.currentTimeMillis();
+            //totalTime = endTime - startTime;
+            //stat.ppcaIterTime.add((double) totalTime / 1000.0);
+            //stat.totalRunTime += (double) totalTime / 1000.0;	
+	    //System.out.println(((double) (totalTime / 1000.0)));            
+            //startTime = System.currentTimeMillis();
             
             
             

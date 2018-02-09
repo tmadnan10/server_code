@@ -175,7 +175,7 @@ public class StandAloneTallnWide implements Serializable {
 		}
 
 		// Setting Spark configuration parameters
-		SparkConf conf = new SparkConf().setAppName("TallnWide").setMaster("local[*]");//
+		SparkConf conf = new SparkConf().setAppName("TallnWide");//.setMaster("local[*]");//
 																	// TODO
 		// remove
 		// this
